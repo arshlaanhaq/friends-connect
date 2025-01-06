@@ -9,9 +9,16 @@ exports.searchUsers = async (req, res) => {
 
     try {
         const users = await User.find({
-            username: { $regex: query, $options: "i" }, 
+            username: { $regex: query, $options: "i" },
+
         });
-        res.json(users);
+        const filteredUsers = users.filter(
+            (user) => user._id.toString() !== req.userId
+        );
+        console.log("after: ", filteredUsers);
+        
+        // Return the filtered list
+        res.json(filteredUsers);
     } catch (err) {
         console.error("Error during search:", err); 
         res.status(500).json({ error: "Error searching users" });
@@ -23,70 +30,48 @@ exports.sendFriendRequest = async (req, res) => {
     const { senderId, receiverId } = req.body;
 
     try {
-        // Ensure both IDs are valid ObjectIds
-        if (!mongoose.Types.ObjectId.isValid(senderId) || !mongoose.Types.ObjectId.isValid(receiverId)) {
-            return res.status(400).json({ error: "Invalid user IDs" });
-        }
-
         const receiver = await User.findById(receiverId);
-        if (!receiver) {
-            return res.status(404).json({ error: "Receiver not found" });
+        if (!receiver.friendRequests.includes(senderId)) {
+            receiver.friendRequests.push(senderId);
+            await receiver.save();
         }
-
-        if (receiver.friendRequests.includes(senderId)) {
-            return res.status(400).json({ error: "Friend request already sent" });
-        }
-
-        receiver.friendRequests.push(senderId);
-        await receiver.save();
         res.json({ message: "Friend request sent!" });
     } catch (err) {
-        console.error("Error during sendFriendRequest:", err); // More detailed logging
-        res.status(500).json({ error: "Error sending friend request", details: err.message });
+        res.status(500).json({ error: "Error sending friend request" });
     }
 };
 
 
 exports.handleFriendRequest = async (req, res) => {
-    const { userId, senderId, action } = req.body;
-
-    if (!userId || !senderId || !action) {
-        return res.status(400).json({ error: "userId, senderId, and action are required" });
-    }
+    const { requestId, action } = req.body;
 
     try {
-        const user = await User.findById(userId);
-        const sender = await User.findById(senderId);
-
-        if (!user || !sender) {
-            return res.status(404).json({ error: "User(s) not found" });
-        }
-
+        const user = await User.findById(req.userId);
+    
         if (action === "accept") {
-            if (user.friends.includes(senderId)) {
-                return res.status(400).json({ error: "Already friends" });
-            }
-            user.friends.push(senderId);
-            user.friendRequests = user.friendRequests.filter(id => id.toString() !== senderId);
+            user.friends.push(requestId);
+            user.friendRequests = user.friendRequests.filter(
+                (id) => id.toString() !== requestId
+            );
             await user.save();
 
-            sender.friends.push(userId);
+            const sender = await User.findById(requestId);
+            sender.friends.push(req.userId);
             await sender.save();
 
             res.json({ message: "Friend request accepted!" });
         } else if (action === "reject") {
-            user.friendRequests = user.friendRequests.filter(id => id.toString() !== senderId);
+            user.friendRequests = user.friendRequests.filter(
+                (id) => id.toString() !== requestId
+            );
             await user.save();
             res.json({ message: "Friend request rejected!" });
-        } else {
-            res.status(400).json({ error: "Invalid action" });
         }
     } catch (err) {
-        console.error("Error handling friend request:", err.message);
+        console.log(err);
         res.status(500).json({ error: "Error handling friend request" });
     }
 };
-
 
 exports.recommendFriends = async (req, res) => {
     const { userId } = req.params;
@@ -110,5 +95,42 @@ exports.recommendFriends = async (req, res) => {
     } catch (err) {
         console.error("Error recommending friends:", err.message);
         res.status(500).json({ error: "Error recommending friends" });
+    }
+};
+
+exports.onFriendRemoved = async (req, res) => {
+    const {  friendId } = req.body;
+
+    if (!req.userId || !friendId) {
+        return res.status(400).json({ error: "User ID and Friend ID are required" });
+    }
+
+    try {
+        // Remove friendId from user's friends list
+        const user = await User.findById(req.userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        user.friends = user.friends.filter(
+            (id) => id.toString() !== friendId
+        );
+        await user.save();
+
+        // Remove userId from friend's friends list
+        const friend = await User.findById(friendId);
+        if (!friend) {
+            return res.status(404).json({ error: "Friend not found" });
+        }
+
+        friend.friends = friend.friends.filter(
+            (id) => id.toString() !== req.userId
+        );
+        await friend.save();
+
+        res.json({ message: "Friend removed successfully" });
+    } catch (err) {
+        console.error("Error removing friend:", err);
+        res.status(500).json({ error: "Error removing friend" });
     }
 };

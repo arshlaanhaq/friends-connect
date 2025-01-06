@@ -4,8 +4,10 @@ import API from "../services/api";
 const FriendsList = ({ friends, onFriendRemoved }) => {
     const handleUnfriend = async (friendId) => {
         try {
+            const res=
             await API.post(`/friends/unfriend`, { friendId });
             onFriendRemoved(friendId); 
+            alert(res.data.message)
         } catch (error) {
             console.error("Error during unfriend:", error);
         }

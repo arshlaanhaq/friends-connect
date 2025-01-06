@@ -95,6 +95,7 @@ li {
 
 li button {
     background-color: #e53e3e;
+    width: 30%;
     padding: 6px 12px;
     border-radius: 6px;
     color: white;

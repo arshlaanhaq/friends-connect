@@ -4,7 +4,8 @@ const {
     sendFriendRequest,
     handleFriendRequest,
     recommendFriends,
-} = require("../controllers/friendController");
+    onFriendRemoved,
+} = require("../controllers/friendcontroller");
 const authMiddleware = require("../middleware/authMiddleware");
 const User = require("../model/User");  
 
@@ -20,10 +21,11 @@ router.post("/send-request", authMiddleware, sendFriendRequest);
 router.post("/handle-request", authMiddleware, handleFriendRequest);
 
 
-router.get("/recommend/:userId", authMiddleware, recommendFriends);
+router.post("/unfriend", authMiddleware, onFriendRemoved);
 
 
 router.get("/", authMiddleware, async (req, res) => {
+    // console.log(req.userId);
     try {
         const user = await User.findById(req.userId);  // Access the user from decoded token
         if (!user) {
@@ -47,13 +49,13 @@ router.get("/requests", authMiddleware, async (req, res) => {
         // Fetch the friend requests using `friendRequests` array
         const requests = await User.find({ _id: { $in: user.friendRequests } });
 
+       
         res.json(requests);
     } catch (err) {
         console.error("Error fetching friend requests:", err);
         res.status(500).json({ error: "Error fetching friend requests" });
     }
-    console.log("User Friend Requests:", User.friendRequests);
-console.log("Fetched Requests:", requests);
+
 });
 
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar = ({name}) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -11,7 +11,7 @@ const Navbar = () => {
 
     return (
         <nav>
-            <h1 to="/dashboard">Dashboard</h1>
+            <h1 to="/dashboard">Dashboard</h1><p>{name}</p>
             <button onClick={handleLogout}>Logout</button>
         </nav>
     );

@@ -12,6 +12,7 @@ const Dashboard = () => {
     const [requests, setRequests] = useState([]);
     const [searchResults, setSearchResults] = useState([]);
     const [currentUserId, setCurrentUserId] = useState(null); 
+    const [name, setName] = useState(null);
 
     // Fetch current user ID from the JWT token
     useEffect(() => {
@@ -19,6 +20,7 @@ const Dashboard = () => {
         if (token) {
             const decoded = jwtDecode(token);
             setCurrentUserId(decoded.id); 
+            setName(decoded.name);
         }
     }, []);
 
@@ -30,6 +32,7 @@ const Dashboard = () => {
             const { data: friendRequests } = await API.get("/friends/requests");
             setFriends(friendsList);
             setRequests(friendRequests);
+
         } catch (error) {
             console.error("Error fetching data:", error);
         }
@@ -37,7 +40,7 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchData();
-    }, [currentUserId]); // Trigger fetch when currentUserId is set
+    }, [currentUserId]); 
 
     const handleFriendRemoved = (friendId) => {
         setFriends((prev) => prev.filter((friend) => friend._id !== friendId));
@@ -45,6 +48,7 @@ const Dashboard = () => {
 
     const handleRequestHandled = (requestId) => {
         setRequests((prev) => prev.filter((request) => request._id !== requestId));
+        fetchData();
     };
 
     const handleSendFriendRequest = async (receiverId) => {
@@ -58,7 +62,7 @@ const Dashboard = () => {
             // Decode the token to get the user ID
             const decodedToken = jwtDecode(token);
             const senderId = decodedToken.id;
-    
+           
             // Send the friend request
             const response = await API.post(
                 "/friends/send-request",
@@ -77,10 +81,10 @@ const Dashboard = () => {
         }
     };
     
-
     return (
         <div className="dashboard-container">
-            <Navbar />
+            <Navbar name={name} />
+
             <h1 className="dashboard-heading">Welcome to Your Dashboard</h1>
 
             {/* Search Bar */}

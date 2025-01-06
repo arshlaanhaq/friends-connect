@@ -14,7 +14,7 @@ const SearchBar = ({ onResults }) => {
 
             const { data } = await API.get(`/friends/search?query=${query}`, {
                 headers: {
-                    Authorization: `Bearer ${token}`, // Add the token here
+                    Authorization: `Bearer ${token}`, 
                 },
             });
             onResults(data); 
